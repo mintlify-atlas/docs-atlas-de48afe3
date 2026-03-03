@@ -1,0 +1,471 @@
+---
+title: Customization guide
+description: Learn how to customize the Hostel Management System's styling, room configuration, and functionality
+---
+
+The Hostel Management System is designed to be easily customizable. This guide covers common customization scenarios.
+
+## Room configuration
+
+### Modifying room numbers and capacity
+
+Room data is defined in `src/data/roomsData.ts:2`:
+
+```typescript src/data/roomsData.ts
+import { Rooms } from "../model/rooms"
+
+export const roomsAvailability : Rooms[] = [
+    {roomNumber:101, isOccupied:false},
+    {roomNumber:102, isOccupied:false},
+    {roomNumber:103, isOccupied:false},
+    {roomNumber:104, isOccupied:false},
+    {roomNumber:105, isOccupied:false},
+    {roomNumber:106, isOccupied:false},
+    {roomNumber:107, isOccupied:false},
+    {roomNumber:108, isOccupied:false},
+    {roomNumber:109, isOccupied:false},
+    {roomNumber:110, isOccupied:false},
+];
+```
+
+### Adding more rooms
+
+<Steps>
+  <Step title="Edit roomsData.ts">
+    Add new room entries to the array:
+
+    ```typescript src/data/roomsData.ts
+    export const roomsAvailability : Rooms[] = [
+        {roomNumber:101, isOccupied:false},
+        {roomNumber:102, isOccupied:false},
+        // ... existing rooms ...
+        {roomNumber:110, isOccupied:false},
+        // Add new rooms
+        {roomNumber:201, isOccupied:false},
+        {roomNumber:202, isOccupied:false},
+        {roomNumber:203, isOccupied:false},
+    ];
+    ```
+  </Step>
+
+  <Step title="Recompile TypeScript">
+    ```bash
+    tsc
+    ```
+  </Step>
+
+  <Step title="Clear existing data (optional)">
+    If you want to reset the system with new room data:
+
+    1. Open browser DevTools (F12)
+    2. Go to **Application** → **Local Storage**
+    3. Delete the `rooms` and `residents` keys
+    4. Refresh the page
+  </Step>
+</Steps>
+
+<Note>
+  New rooms only apply to fresh installations. Existing localStorage data takes precedence. Clear localStorage to see the new room configuration.
+</Note>
+
+### Using different room numbering schemes
+
+You can use any numbering scheme:
+
+<CodeGroup>
+```typescript Sequential numbering
+export const roomsAvailability : Rooms[] = [
+    {roomNumber:1, isOccupied:false},
+    {roomNumber:2, isOccupied:false},
+    {roomNumber:3, isOccupied:false},
+];
+```
+
+```typescript Floor-based (European style)
+export const roomsAvailability : Rooms[] = [
+    {roomNumber:001, isOccupied:false},  // Ground floor
+    {roomNumber:101, isOccupied:false},  // First floor
+    {roomNumber:201, isOccupied:false},  // Second floor
+];
+```
+
+```typescript Letter prefixes
+// Requires changing roomNumber type from number to string
+export const roomsAvailability = [
+    {roomNumber:"A101", isOccupied:false},
+    {roomNumber:"A102", isOccupied:false},
+    {roomNumber:"B101", isOccupied:false},
+];
+```
+</CodeGroup>
+
+<Warning>
+  If using non-numeric room numbers, you must update the `Rooms` interface in `src/model/rooms.ts` to change `roomNumber: number` to `roomNumber: string`, and update the HTML input type accordingly.
+</Warning>
+
+## Styling customization
+
+### Color scheme
+
+The application's colors are defined in `styles/style.css`. Here are the key color variables:
+
+```css styles/style.css
+body {
+  background-color: #fff;     /* Page background */
+  color: #222;                /* Text color */
+}
+
+.main-header {
+  background-color: #333;     /* Header background */
+  color: white;               /* Header text */
+}
+
+.primary-btn {
+  background-color: #0056b3;  /* Primary button */
+  border: 1px solid #004494;  /* Button border */
+}
+
+.primary-btn:hover {
+  background-color: #004494;  /* Button hover state */
+}
+```
+
+### Changing the color theme
+
+<Steps>
+  <Step title="Choose your colors">
+    Select a color scheme. For example, a green theme:
+
+    - Primary: `#28a745`
+    - Primary dark: `#218838`
+    - Header: `#155724`
+  </Step>
+
+  <Step title="Update style.css">
+    ```css styles/style.css
+    .main-header {
+      background-color: #155724;
+      color: white;
+    }
+
+    .primary-btn {
+      background-color: #28a745;
+      border: 1px solid #218838;
+    }
+
+    .primary-btn:hover {
+      background-color: #218838;
+    }
+    ```
+  </Step>
+
+  <Step title="Refresh browser">
+    No compilation needed for CSS changes. Just refresh your browser.
+  </Step>
+</Steps>
+
+### Button styles
+
+Customize action buttons:
+
+```css styles/style.css
+.deleteBtn {
+  background: #d9534f;  /* Red */
+  color: white;
+  padding: 4px 8px;
+}
+
+.editBtn {
+  background: #f0ad4e;  /* Orange */
+  color: white;
+  padding: 4px 8px;
+}
+```
+
+<Tip>
+  Consider accessibility when choosing colors. Ensure sufficient contrast between text and background (WCAG AA requires 4.5:1 for normal text).
+</Tip>
+
+### Layout adjustments
+
+Modify the container width and spacing:
+
+```css styles/style.css
+.container {
+  max-width: 950px;    /* Maximum content width */
+  margin: 20px auto;   /* Center with vertical spacing */
+  padding: 20px;       /* Internal spacing */
+}
+```
+
+For a wider layout:
+
+```css styles/style.css
+.container {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 30px;
+}
+```
+
+### Table styling
+
+Customize the resident table appearance:
+
+```css styles/style.css
+.resident-table th {
+  background-color: #f2f2f2;  /* Header background */
+}
+
+.resident-table tr:nth-child(even) {
+  background-color: #fafafa;  /* Alternating row color */
+}
+
+.resident-table th,
+.resident-table td {
+  border: 1px solid #ddd;     /* Cell borders */
+  padding: 10px;              /* Cell padding */
+}
+```
+
+## Form customization
+
+### Adding new resident fields
+
+To add additional fields to the resident registration:
+
+<Steps>
+  <Step title="Update the Resident interface">
+    Edit `src/model/residents.ts`:
+
+    ```typescript src/model/residents.ts
+    export interface Resident {
+      id: string;
+      name: string;
+      age: number;
+      phone: string;
+      roomNumber: number;
+      checkIndate: string;
+      // Add new fields
+      email?: string;
+      emergencyContact?: string;
+    }
+    ```
+  </Step>
+
+  <Step title="Update the HTML form">
+    Add input fields in `index.html`:
+
+    ```html index.html
+    <form id="residentForm" class="input-row">
+      <input type="text" id="name" placeholder="Name" required />
+      <input type="number" id="age" placeholder="Age" required />
+      <input type="text" id="phone" placeholder="Phone" required />
+      <input type="email" id="email" placeholder="Email" />
+      <input type="text" id="emergencyContact" placeholder="Emergency Contact" />
+      <select id="roomNumber" required></select>
+      <input type="date" id="checkInDate" required />
+      <button type="submit" class="primary-btn">Add Resident</button>
+    </form>
+    ```
+  </Step>
+
+  <Step title="Update addResident method">
+    Modify `src/services/hostelService.ts:44` to include new fields:
+
+    ```typescript src/services/hostelService.ts
+    addResident(
+      name: string,
+      age: number,
+      phone: string,
+      roomNumber: number,
+      checkInDate: string,
+      email?: string,
+      emergencyContact?: string
+    ) {
+      // ... validation code ...
+
+      const newResident: Resident = {
+        id: Date.now().toString(),
+        name,
+        age,
+        phone,
+        roomNumber,
+        checkIndate: checkInDate,
+        email,
+        emergencyContact
+      };
+      // ... rest of method ...
+    }
+    ```
+  </Step>
+
+  <Step title="Update UI handler">
+    Modify the form submission handler in `src/ui/ui.ts` to read the new fields and pass them to `addResident`.
+  </Step>
+
+  <Step title="Update table display">
+    Add columns to the table in `index.html` and update the rendering logic in `src/ui/ui.ts`.
+  </Step>
+
+  <Step title="Recompile">
+    ```bash
+    tsc
+    ```
+  </Step>
+</Steps>
+
+## Data persistence customization
+
+### Changing storage mechanism
+
+By default, data is stored in `localStorage`. To use a different storage method:
+
+<CodeGroup>
+```typescript Session storage (clears on tab close)
+// In hostelService.ts, replace localStorage with sessionStorage
+saveData() {
+  sessionStorage.setItem("rooms", JSON.stringify(this.rooms));
+  sessionStorage.setItem("residents", JSON.stringify(this.resident));
+}
+
+loadData(): void {
+  const storedRooms = sessionStorage.getItem("rooms");
+  const storedResidents = sessionStorage.getItem("residents");
+  // ... rest of method
+}
+```
+
+```typescript Backend API (example)
+// Replace localStorage calls with API requests
+async saveData() {
+  await fetch('/api/rooms', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(this.rooms)
+  });
+  await fetch('/api/residents', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(this.resident)
+  });
+}
+```
+</CodeGroup>
+
+### Storage key customization
+
+To use different localStorage keys (e.g., for multiple hostels):
+
+```typescript src/services/hostelService.ts
+private ROOMS_KEY = "hostel_downtown_rooms";
+private RESIDENTS_KEY = "hostel_downtown_residents";
+
+saveData() {
+  localStorage.setItem(this.ROOMS_KEY, JSON.stringify(this.rooms));
+  localStorage.setItem(this.RESIDENTS_KEY, JSON.stringify(this.resident));
+}
+```
+
+## UI text customization
+
+### Changing labels and headings
+
+Edit `index.html` to customize text:
+
+```html index.html
+<header class="main-header">
+  <h1>Hostel Management System</h1>  <!-- Change this -->
+</header>
+
+<h3>Resident Registration</h3>  <!-- Change section headings -->
+<h3>Room Overview</h3>
+<h3>Current Residents</h3>
+```
+
+### Input placeholders
+
+```html index.html
+<input type="text" id="name" placeholder="Full Name" required />
+<input type="number" id="age" placeholder="Age (18+)" required />
+<input type="text" id="phone" placeholder="Contact Number" required />
+```
+
+### Button text
+
+```html index.html
+<button type="submit" class="primary-btn">Register Resident</button>
+```
+
+## Advanced customization
+
+### Adding room types
+
+Extend the `Rooms` interface to include room types:
+
+```typescript src/model/rooms.ts
+export interface Rooms {
+  roomNumber: number;
+  isOccupied: boolean;
+  type?: 'single' | 'double' | 'suite';
+  pricePerNight?: number;
+}
+```
+
+Then update `roomsData.ts`:
+
+```typescript src/data/roomsData.ts
+export const roomsAvailability: Rooms[] = [
+  {roomNumber: 101, isOccupied: false, type: 'single', pricePerNight: 50},
+  {roomNumber: 102, isOccupied: false, type: 'double', pricePerNight: 75},
+  {roomNumber: 103, isOccupied: false, type: 'suite', pricePerNight: 120},
+];
+```
+
+### Validation rules
+
+Customize validation in `src/services/hostelService.ts:44`:
+
+```typescript src/services/hostelService.ts
+addResident(
+  name: string,
+  age: number,
+  phone: string,
+  roomNumber: number,
+  checkInDate: string,
+) {
+  // Add custom validation
+  if (age < 18) {
+    throw new Error("Resident must be 18 or older");
+  }
+  
+  if (phone.length < 10) {
+    throw new Error("Phone number must be at least 10 digits");
+  }
+
+  // ... rest of method
+}
+```
+
+<Tip>
+  After making customizations, always test thoroughly by adding, editing, and deleting residents to ensure all features work correctly.
+</Tip>
+
+## Recompiling after changes
+
+Remember to recompile after TypeScript changes:
+
+```bash
+# Single compilation
+tsc
+
+# Watch mode for active development
+tsc --watch
+```
+
+CSS changes don't require compilation—just refresh your browser.
+
+## Next steps
+
+- Review [development setup](/development/setup) for environment configuration
+- Learn about [building the project](/development/building) for deployment

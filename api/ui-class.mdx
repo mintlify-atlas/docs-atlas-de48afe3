@@ -1,0 +1,234 @@
+---
+title: UI class
+description: User interface class for rendering and managing the hostel management system frontend
+---
+
+The `UI` class handles all DOM manipulation and user interactions for the hostel management system. It provides methods for rendering residents, managing forms, and updating the interface.
+
+## Constructor
+
+```typescript
+constructor(private service: hostelService)
+```
+
+Initializes the UI with a reference to the hostelService instance and sets up all DOM element references.
+
+<ParamField path="service" type="hostelService" required>
+  Instance of hostelService to handle business logic
+</ParamField>
+
+```typescript
+import { UI } from './ui/ui.js';
+import { hostelService } from './services/hostelService.js';
+
+const service = new hostelService();
+const ui = new UI(service);
+```
+
+## Properties
+
+<ParamField path="form" type="HTMLFormElement">
+  Reference to the resident form element
+</ParamField>
+
+<ParamField path="tableBody" type="HTMLTableSectionElement">
+  Reference to the table body for displaying residents
+</ParamField>
+
+<ParamField path="statsDiv" type="HTMLDivElement">
+  Reference to the div displaying room statistics
+</ParamField>
+
+<ParamField path="roomSelect" type="HTMLSelectElement">
+  Reference to the room number dropdown select element
+</ParamField>
+
+<ParamField path="submitBtn" type="HTMLButtonElement">
+  Reference to the form submit button
+</ParamField>
+
+<ParamField path="searchInput" type="HTMLInputElement">
+  Reference to the resident search input field
+</ParamField>
+
+<ParamField path="editResidentId" type="string | null" default="null">
+  Stores the ID of the resident currently being edited
+</ParamField>
+
+## Methods
+
+### init (private)
+
+```typescript
+private init(): void
+```
+
+Initializes the UI by populating dropdowns, rendering residents and stats, and setting up event handlers.
+
+### populateRoomDropdown (private)
+
+```typescript
+private populateRoomDropdown(currentRoomNumber?: number): void
+```
+
+Populates the room number dropdown with available vacant rooms. Optionally includes a specific room number.
+
+<ParamField path="currentRoomNumber" type="number">
+  Optional room number to include in the dropdown (used during editing)
+</ParamField>
+
+```typescript
+// Populate with vacant rooms only
+this.populateRoomDropdown();
+
+// Include room 101 even if occupied (for editing)
+this.populateRoomDropdown(101);
+```
+
+### renderResidents (private)
+
+```typescript
+private renderResidents(searchText: string = ""): void
+```
+
+Renders the residents table with optional filtering by search text.
+
+<ParamField path="searchText" type="string" default="''">
+  Optional search query to filter residents by name
+</ParamField>
+
+```typescript
+// Render all residents
+this.renderResidents();
+
+// Render residents matching search
+this.renderResidents("John");
+```
+
+### handleSearch (private)
+
+```typescript
+private handleSearch(): void
+```
+
+Sets up event listener for the search input to filter residents in real-time.
+
+### renderStats (private)
+
+```typescript
+private renderStats(): void
+```
+
+Renders the room statistics showing total, occupied, and vacant rooms with color-coded display.
+
+```typescript
+this.renderStats();
+// Displays: "Total Rooms: 50 | Occupied: 30 | Vacant: 20"
+```
+
+### handleFormSubmit (private)
+
+```typescript
+private handleFormSubmit(): void
+```
+
+Sets up the form submit event handler. Handles both adding new residents and updating existing ones based on `editResidentId` state.
+
+**Validation:**
+- Prevents default form submission
+- Validates all form inputs
+- Displays error alerts if operation fails
+
+```typescript
+// Form submission flow:
+// 1. Extract form values
+// 2. Check if editing or adding
+// 3. Call appropriate service method
+// 4. Refresh UI and reset form
+```
+
+### handleTableClicks (private)
+
+```typescript
+private handleTableClicks(): void
+```
+
+Sets up event delegation for table row actions (edit and delete buttons).
+
+**Actions:**
+- Delete: Shows confirmation dialog before removing resident
+- Edit: Loads resident data into form for editing
+
+### startEditing (private)
+
+```typescript
+private startEditing(id: string): void
+```
+
+Enters edit mode by loading a resident's data into the form.
+
+<ParamField path="id" type="string" required>
+  The unique ID of the resident to edit
+</ParamField>
+
+**Behavior:**
+- Populates all form fields with resident data
+- Changes submit button text to "Update Resident Info"
+- Changes button color to orange (#ffa500)
+- Scrolls form into view smoothly
+
+```typescript
+this.startEditing("1234567890");
+```
+
+### refreshAll (private)
+
+```typescript
+private refreshAll(): void
+```
+
+Refreshes all UI components including residents table, stats, and room dropdown. Also clears the search input.
+
+```typescript
+this.refreshAll();
+```
+
+## Usage example
+
+```typescript
+import { UI } from './ui/ui.js';
+import { hostelService } from './services/hostelService.js';
+
+// Initialize service and UI
+const service = new hostelService();
+const ui = new UI(service);
+
+// UI automatically:
+// - Loads and displays all residents
+// - Shows room statistics
+// - Populates room dropdown with vacant rooms
+// - Sets up all event handlers for form submission, search, edit, and delete
+```
+
+## HTML Requirements
+
+The UI class expects the following HTML elements to exist:
+
+```html
+<form id="residentForm">
+  <input id="name" type="text" required>
+  <input id="age" type="number" required>
+  <input id="phone" type="tel" required>
+  <select id="roomNumber" required></select>
+  <input id="checkInDate" type="date" required>
+  <button type="submit">Add Resident</button>
+</form>
+
+<input id="searchResident" type="text" placeholder="Search residents...">
+
+<table>
+  <tbody id="residentTableBody"></tbody>
+</table>
+
+<div id="stats"></div>
+```

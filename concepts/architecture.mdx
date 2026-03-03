@@ -1,0 +1,304 @@
+---
+title: System architecture
+description: Overview of the three-layer architecture pattern used in the Hostel Management System
+---
+
+The Hostel Management System follows a classic three-layer architecture pattern that separates concerns and promotes maintainability. This architecture consists of the UI layer, service layer, and data layer.
+
+## Architecture overview
+
+The system is organized into three distinct layers:
+
+```
+┌─────────────────────────────────────┐
+│         UI Layer (ui.ts)            │
+│   DOM manipulation & rendering      │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│  Service Layer (hostelService.ts)   │
+│   Business logic & state mgmt       │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│   Data Layer (localStorage API)      │
+│   Persistence & data storage        │
+└─────────────────────────────────────┘
+```
+
+## UI layer
+
+The UI layer is implemented in `src/ui/ui.ts` and handles all user interface concerns including DOM manipulation, event handling, and rendering.
+
+### Responsibilities
+
+- Rendering resident data in tables
+- Handling form submissions for add/update operations
+- Managing edit mode state
+- Populating dropdown menus with available rooms
+- Displaying statistics and search results
+- Providing user feedback through alerts and visual updates
+
+### Key methods
+
+<Tabs>
+  <Tab title="Rendering">
+    ```typescript
+    private renderResidents(searchText: string = ""): void {
+      this.tableBody.innerHTML = "";
+      const residents = this.service.getResidents.filter((r) =>
+        r.name.toLowerCase().includes(searchText.toLowerCase()),
+      );
+      // ... table rendering logic
+    }
+    ```
+    
+    Renders the resident list in the table, with optional search filtering.
+  </Tab>
+  
+  <Tab title="Event handling">
+    ```typescript
+    private handleFormSubmit(): void {
+      this.form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        // ... form validation and service calls
+      });
+    }
+    ```
+    
+    Manages form submission for both adding and updating residents.
+  </Tab>
+  
+  <Tab title="Room dropdown">
+    ```typescript
+    private populateRoomDropdown(currentRoomNumber?: number): void {
+      this.roomSelect.innerHTML = "";
+      const vacantRooms = this.service.getVacantRooms();
+      // ... populate dropdown with available rooms
+    }
+    ```
+    
+    Dynamically populates room selection based on availability.
+  </Tab>
+</Tabs>
+
+<Info>
+The UI class uses TypeScript's type system to ensure type-safe DOM element selection with explicit type assertions.
+</Info>
+
+## Service layer
+
+The service layer is implemented in `src/services/hostelService.ts` and contains all business logic, validation, and state management.
+
+### Responsibilities
+
+- Managing resident and room collections
+- Validating business rules (room availability, resident existence)
+- Coordinating state changes between residents and rooms
+- Persisting data to localStorage
+- Providing computed data (statistics, filtered lists)
+
+### Core operations
+
+<Tabs>
+  <Tab title="Add resident">
+    ```typescript
+    addResident(
+      name: string,
+      age: number,
+      phone: string,
+      roomNumber: number,
+      checkInDate: string,
+    ) {
+      const room = this.rooms.find((r) => r.roomNumber === roomNumber);
+      if (!room) {
+        throw new Error("Room doesn't exist");
+      } else if (room.isOccupied) {
+        throw new Error("Room is already occupied");
+      }
+
+      const newResident: Resident = {
+        id: Date.now().toString(),
+        name: name,
+        age: age,
+        phone: phone,
+        roomNumber: roomNumber,
+        checkIndate: checkInDate,
+      };
+      this.resident.push(newResident);
+      room.isOccupied = true;
+      this.saveData();
+    }
+    ```
+    
+    Validates room availability and creates a new resident record.
+  </Tab>
+  
+  <Tab title="Update resident">
+    ```typescript
+    updateResident(residentId: string, updatedData: Partial<Resident>) {
+      const index = this.resident.findIndex((r) => r.id === residentId);
+      if (index === -1) throw new Error("Resident not found");
+
+      const oldResident = this.resident[index];
+
+      if (
+        updatedData.roomNumber &&
+        updatedData.roomNumber !== oldResident.roomNumber
+      ) {
+        const newRoom = this.rooms.find(
+          (r) => r.roomNumber === updatedData.roomNumber,
+        );
+        if (!newRoom || newRoom.isOccupied)
+          throw new Error("New room unavailable");
+
+        const oldRoom = this.rooms.find(
+          (r) => r.roomNumber === oldResident.roomNumber,
+        );
+        if (oldRoom) oldRoom.isOccupied = false;
+
+        newRoom.isOccupied = true;
+      }
+
+      this.resident[index] = { ...oldResident, ...updatedData };
+      this.saveData();
+    }
+    ```
+    
+    Handles partial updates and manages room reassignment logic.
+  </Tab>
+  
+  <Tab title="Remove resident">
+    ```typescript
+    removeResident(residentId: string) {
+      const index = this.resident.findIndex((r) => r.id === residentId);
+      if (index == -1) {
+        throw new Error("Resident not found");
+      }
+      const room = this.rooms.find(
+        (r) => r.roomNumber === this.resident[index].roomNumber,
+      );
+      if (!room) {
+        throw new Error("Room doesn't exist");
+      }
+      room.isOccupied = false;
+      this.resident.splice(index, 1);
+      this.saveData();
+    }
+    ```
+    
+    Removes a resident and frees up their room.
+  </Tab>
+</Tabs>
+
+<Warning>
+The service layer automatically calls `saveData()` after every state modification to ensure data persistence. This is critical for maintaining data integrity across page refreshes.
+</Warning>
+
+### Statistics and filtering
+
+The service layer provides computed data methods:
+
+```typescript
+getVacantRooms() {
+  return this.rooms.filter((r) => !r.isOccupied);
+}
+
+getOccupiedRooms() {
+  return this.rooms.filter((r) => r.isOccupied);
+}
+
+getRoomStats() {
+  const total = this.rooms.length;
+  const occupied = this.getOccupiedRooms().length;
+  const vacant = total - occupied;
+  return { total, occupied, vacant };
+}
+```
+
+These methods are referenced in:
+- `src/services/hostelService.ts:118` - `getVacantRooms()`
+- `src/services/hostelService.ts:122` - `getOccupiedRooms()`
+- `src/services/hostelService.ts:125` - `getRoomStats()`
+
+## Data layer
+
+The data layer uses the browser's localStorage API for persistence. No external database is required.
+
+### Storage implementation
+
+Data is stored in two localStorage keys:
+- `rooms` - Array of room objects with availability status
+- `residents` - Array of resident records
+
+```typescript
+saveData() {
+  localStorage.setItem("rooms", JSON.stringify(this.rooms));
+  localStorage.setItem("residents", JSON.stringify(this.resident));
+}
+
+loadData(): void {
+  const storedRooms = localStorage.getItem("rooms");
+  const storedResidents = localStorage.getItem("residents");
+  if (storedRooms) {
+    this.rooms = JSON.parse(storedRooms);
+  } else {
+    this.rooms = roomsAvailability;
+  }
+  if (storedResidents) {
+    this.resident = JSON.parse(storedResidents);
+  } else {
+    this.resident = [];
+  }
+}
+```
+
+See `src/services/hostelService.ts:14` and `src/services/hostelService.ts:38` for the implementation.
+
+<Note>
+On first load, if no data exists in localStorage, the system initializes with 10 vacant rooms (101-110) from `src/data/roomsData.ts` and an empty residents array.
+</Note>
+
+## Application initialization
+
+The application is initialized in `src/app.ts`:
+
+```typescript
+import { hostelService } from "./services/hostelService.js";
+import { UI } from "./ui/ui.js";
+
+const data = new hostelService();
+new UI(data);
+```
+
+This initialization:
+1. Creates the service instance (which loads data from localStorage)
+2. Creates the UI instance and passes the service via dependency injection
+3. The UI automatically initializes event handlers and renders the initial state
+
+## Benefits of this architecture
+
+<Tabs>
+  <Tab title="Separation of concerns">
+    Each layer has a single responsibility:
+    - UI handles presentation
+    - Service handles logic
+    - Data layer handles persistence
+    
+    This makes the code easier to understand and maintain.
+  </Tab>
+  
+  <Tab title="Testability">
+    The service layer can be tested independently of the UI. Business logic is isolated and doesn't depend on DOM APIs.
+  </Tab>
+  
+  <Tab title="Maintainability">
+    Changes to one layer have minimal impact on others. For example, switching from localStorage to a REST API would only require changes to the data layer methods.
+  </Tab>
+  
+  <Tab title="Type safety">
+    TypeScript interfaces ensure type safety across all layers, preventing runtime errors and improving developer experience.
+  </Tab>
+</Tabs>

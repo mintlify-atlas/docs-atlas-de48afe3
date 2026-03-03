@@ -1,0 +1,277 @@
+---
+title: Building and compiling the project
+description: Understand the TypeScript compilation process and build configuration
+---
+
+The Hostel Management System is built with TypeScript and compiled to JavaScript for browser execution.
+
+## TypeScript configuration
+
+The project's `tsconfig.json` defines the compilation settings:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    // File Layout
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // Environment Settings
+    "module": "es6",
+    "target": "es6",
+    "types": [],
+
+    // Compilation Settings
+    "noEmitOnError": true,
+    "strict": true,
+    "moduleDetection": "force"
+  }
+}
+```
+
+### Key configuration options
+
+| Option | Value | Purpose |
+|--------|-------|--------|
+| `rootDir` | `./src` | Source TypeScript files location |
+| `outDir` | `./dist` | Compiled JavaScript output directory |
+| `module` | `es6` | Use ES6 module system (import/export) |
+| `target` | `es6` | Compile to ES6 JavaScript |
+| `strict` | `true` | Enable all strict type-checking options |
+| `noEmitOnError` | `true` | Don't generate output if there are errors |
+| `moduleDetection` | `force` | Treat all files as modules |
+
+<Note>
+  The `strict` mode enables rigorous type checking, helping catch potential bugs during development. This includes `strictNullChecks`, `strictFunctionTypes`, and more.
+</Note>
+
+## Build process
+
+### Standard build
+
+To compile the entire project:
+
+```bash
+tsc
+```
+
+This command:
+1. Reads configuration from `tsconfig.json`
+2. Compiles all `.ts` files in `src/` directory
+3. Outputs `.js` files to `dist/` with the same directory structure
+4. Performs type checking and reports any errors
+
+<Tip>
+  The compilation preserves the directory structure. For example, `src/services/hostelService.ts` becomes `dist/services/hostelService.js`.
+</Tip>
+
+### Watch mode
+
+For active development, use watch mode to automatically recompile on file changes:
+
+```bash
+tsc --watch
+```
+
+Watch mode:
+- Monitors all source files for changes
+- Automatically recompiles when you save a file
+- Provides instant feedback on type errors
+- Keeps running until you stop it (Ctrl+C)
+
+<Steps>
+  <Step title="Start watch mode">
+    ```bash
+    tsc --watch
+    ```
+
+    You'll see output like:
+    ```
+    [XX:XX:XX AM] Starting compilation in watch mode...
+    [XX:XX:XX AM] Found 0 errors. Watching for file changes.
+    ```
+  </Step>
+
+  <Step title="Make changes to TypeScript files">
+    Edit any `.ts` file in the `src/` directory and save.
+  </Step>
+
+  <Step title="Observe automatic recompilation">
+    The watch mode will detect the change and recompile:
+    ```
+    [XX:XX:XX AM] File change detected. Starting incremental compilation...
+    [XX:XX:XX AM] Found 0 errors.
+    ```
+  </Step>
+
+  <Step title="Refresh browser">
+    Reload your browser to see the changes (or use a live reload server).
+  </Step>
+</Steps>
+
+## Build output structure
+
+After compilation, the `dist/` directory mirrors the `src/` structure:
+
+```
+dist/
+├── app.js
+├── data/
+│   └── roomsData.js
+├── model/
+│   ├── residents.js
+│   └── rooms.js
+├── services/
+│   └── hostelService.js
+└── ui/
+    └── ui.js
+```
+
+### Module imports
+
+The project uses ES6 modules with explicit `.js` extensions in import statements:
+
+```typescript src/app.ts
+import { hostelService } from "./services/hostelService.js";
+import { UI } from "./ui/ui.js";
+
+const data = new hostelService();
+new UI(data);
+```
+
+<Warning>
+  Even though the source files are `.ts`, imports must reference `.js` extensions. This is required for ES6 module resolution in the browser.
+</Warning>
+
+## HTML integration
+
+The `index.html` file loads the compiled JavaScript as an ES6 module:
+
+```html index.html
+<script type="module" src="./dist/app.js"></script>
+```
+
+The `type="module"` attribute enables:
+- ES6 import/export syntax
+- Automatic strict mode
+- Deferred execution (similar to defer attribute)
+
+## Handling compilation errors
+
+### Type errors
+
+With `strict: true`, TypeScript enforces rigorous type checking:
+
+```typescript
+// Error: Type 'string' is not assignable to type 'number'
+const roomNumber: number = "101";
+```
+
+Fix by ensuring type compatibility:
+
+```typescript
+const roomNumber: number = 101;
+```
+
+### No emit on error
+
+The `noEmitOnError: true` setting prevents generating output files when errors exist:
+
+```
+error TS2322: Type 'string' is not assignable to type 'number'.
+Found 1 error.
+```
+
+<Note>
+  This safety feature ensures you never deploy broken code. Fix all type errors before the build succeeds.
+</Note>
+
+## Build optimization
+
+### Clean build
+
+To ensure a fresh compilation, remove the `dist/` directory first:
+
+```bash
+rm -rf dist/
+tsc
+```
+
+### Checking specific files
+
+To check a single file without emitting output:
+
+```bash
+tsc --noEmit src/services/hostelService.ts
+```
+
+### Verbose output
+
+For detailed compilation information:
+
+```bash
+tsc --verbose
+```
+
+## Production considerations
+
+While the current configuration works for development, consider these enhancements for production:
+
+<CodeGroup>
+```json Enable source maps
+{
+  "compilerOptions": {
+    "sourceMap": true
+  }
+}
+```
+
+```json Generate type declarations
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true
+  }
+}
+```
+
+```json Additional strictness
+{
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
+  }
+}
+```
+</CodeGroup>
+
+<Tip>
+  Source maps (`sourceMap: true`) allow you to debug TypeScript code directly in browser DevTools, even though the browser runs JavaScript.
+</Tip>
+
+## Continuous integration
+
+For CI/CD pipelines, ensure the build is part of your workflow:
+
+```bash
+# Install TypeScript
+npm install -g typescript
+
+# Run build
+tsc
+
+# Check for errors
+if [ $? -eq 0 ]; then
+  echo "Build successful"
+else
+  echo "Build failed"
+  exit 1
+fi
+```
+
+## Next steps
+
+- Explore [customization options](/development/customization) to modify the system
+- Return to [setup instructions](/development/setup) if you need to configure your environment

@@ -1,0 +1,200 @@
+---
+title: Development environment setup
+description: Set up your local development environment for the Hostel Management System
+---
+
+This guide will help you set up your development environment to work on the Hostel Management System.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js** (v14 or higher recommended)
+- **npm** or **yarn** package manager
+- **TypeScript** compiler
+- A modern web browser (Chrome, Firefox, or Edge)
+- A code editor (VS Code recommended)
+
+## Project structure
+
+The project follows a modular TypeScript architecture:
+
+```
+hostel-management-system/
+├── src/
+│   ├── app.ts                    # Application entry point
+│   ├── data/
+│   │   └── roomsData.ts          # Initial room data
+│   ├── model/
+│   │   ├── residents.ts          # Resident interface
+│   │   └── rooms.ts              # Room interface
+│   ├── services/
+│   │   └── hostelService.ts      # Core business logic
+│   └── ui/
+│       └── ui.ts                 # UI rendering and event handling
+├── styles/
+│   └── style.css                 # Application styles
+├── dist/                         # Compiled JavaScript output
+├── index.html                    # Main HTML file
+└── tsconfig.json                 # TypeScript configuration
+```
+
+## Installation steps
+
+<Steps>
+  <Step title="Clone or download the project">
+    Navigate to your workspace directory and ensure you have the source code:
+
+    ```bash
+    cd ~/workspace/source/hostel\ management\ system/
+    ```
+  </Step>
+
+  <Step title="Install TypeScript globally (if not already installed)">
+    ```bash
+    npm install -g typescript
+    ```
+
+    Verify the installation:
+
+    ```bash
+    tsc --version
+    ```
+  </Step>
+
+  <Step title="Verify project configuration">
+    Check that `tsconfig.json` is present in the root directory. This file contains the TypeScript compiler configuration for the project.
+  </Step>
+
+  <Step title="Compile the TypeScript code">
+    Compile the TypeScript files to JavaScript:
+
+    ```bash
+    tsc
+    ```
+
+    This will generate the compiled JavaScript files in the `dist/` directory.
+  </Step>
+
+  <Step title="Open in browser">
+    Since this is a client-side application, you can open `index.html` directly in your browser or use a local development server:
+
+    <CodeGroup>
+    ```bash Using Python
+    python3 -m http.server 8000
+    ```
+
+    ```bash Using Node.js http-server
+    npx http-server -p 8000
+    ```
+
+    ```bash Using VS Code Live Server
+    # Install Live Server extension in VS Code
+    # Right-click index.html and select "Open with Live Server"
+    ```
+    </CodeGroup>
+
+    Then navigate to `http://localhost:8000` in your browser.
+  </Step>
+</Steps>
+
+## Development workflow
+
+### Watch mode for automatic compilation
+
+During development, use TypeScript's watch mode to automatically recompile when files change:
+
+```bash
+tsc --watch
+```
+
+<Tip>
+  Keep the watch mode running in a separate terminal window while you develop. This will automatically detect changes and recompile your TypeScript files.
+</Tip>
+
+### Browser Developer Tools
+
+The application uses `localStorage` for data persistence. To view or clear stored data:
+
+1. Open browser DevTools (F12)
+2. Navigate to **Application** → **Local Storage**
+3. Find your domain to view `rooms` and `residents` data
+
+<Note>
+  The system initializes with 10 rooms (101-110) if no data exists in localStorage. This initial data is defined in `src/data/roomsData.ts:2`.
+</Note>
+
+## Verifying your setup
+
+To verify everything is working correctly:
+
+<Steps>
+  <Step title="Check compilation">
+    Ensure the `dist/` directory contains compiled JavaScript files:
+
+    ```bash
+    ls -R dist/
+    ```
+
+    You should see:
+    - `app.js`
+    - `data/roomsData.js`
+    - `model/residents.js` and `rooms.js`
+    - `services/hostelService.js`
+    - `ui/ui.js`
+  </Step>
+
+  <Step title="Test the application">
+    Open the application in your browser and try:
+    - Adding a resident
+    - Viewing room statistics
+    - Searching for residents
+    - Editing/deleting residents
+  </Step>
+
+  <Step title="Check console for errors">
+    Open browser DevTools console (F12) and verify there are no errors. You should see:
+
+    ```
+    here hostelService { ... }
+    ```
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### TypeScript compilation errors
+
+If you encounter compilation errors:
+
+1. Ensure you're using a compatible TypeScript version
+2. Check that all files are saved
+3. Try cleaning and rebuilding:
+
+```bash
+rm -rf dist/
+tsc
+```
+
+### Module resolution errors
+
+The project uses ES6 modules. Ensure:
+- All imports include the `.js` extension (e.g., `from "./services/hostelService.js"`)
+- Your `tsconfig.json` has `"module": "es6"` configured
+- The HTML file loads the script with `type="module"`
+
+### Browser compatibility
+
+This application requires a modern browser with support for:
+- ES6 modules
+- LocalStorage API
+- Modern JavaScript features (classes, arrow functions, etc.)
+
+<Warning>
+  Internet Explorer is not supported. Use Chrome, Firefox, Edge, or Safari.
+</Warning>
+
+## Next steps
+
+- Learn about [building and compiling](/development/building) the project
+- Explore [customization options](/development/customization) to tailor the system to your needs

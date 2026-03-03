@@ -1,0 +1,336 @@
+---
+title: Resident management
+description: Learn how to add, update, and remove residents in the Hostel Management System
+---
+
+The resident management feature allows you to maintain a complete record of all hostel residents, including their personal information, room assignments, and check-in dates.
+
+## Adding a new resident
+
+Residents can be added through the registration form located at the top of the application.
+
+<Steps>
+  <Step title="Fill in resident details">
+    Enter the resident's basic information in the form:
+    - **Name**: Full name of the resident
+    - **Age**: Resident's age
+    - **Phone**: Contact phone number
+    - **Room Number**: Select from available vacant rooms
+    - **Check-In Date**: The date when the resident moves in
+  </Step>
+
+  <Step title="Select an available room">
+    The room dropdown automatically displays only vacant rooms. If no rooms are available, you'll see a "No Vacant Rooms" message.
+  </Step>
+
+  <Step title="Submit the form">
+    Click the "Add Resident" button to register the new resident. The room will automatically be marked as occupied.
+  </Step>
+</Steps>
+
+### HTML form structure
+
+The registration form is built with the following structure:
+
+```html index.html
+<form id="residentForm" class="input-row">
+  <input type="text" id="name" placeholder="Name" required />
+  <input type="number" id="age" placeholder="Age" required />
+  <input type="text" id="phone" placeholder="Phone" required />
+  <select id="roomNumber" required></select>
+  <input type="date" id="checkInDate" required />
+  <button type="submit" class="primary-btn">Add Resident</button>
+</form>
+```
+
+### Backend implementation
+
+When a resident is added, the system validates room availability and creates a new resident record:
+
+```typescript hostelService.ts
+addResident(
+  name: string,
+  age: number,
+  phone: string,
+  roomNumber: number,
+  checkInDate: string,
+) {
+  const room = this.rooms.find((r) => r.roomNumber === roomNumber);
+  if (!room) {
+    throw new Error("Room doesn't exist");
+  } else if (room.isOccupied) {
+    throw new Error("Room is already occupied");
+  }
+
+  const newResident: Resident = {
+    id: Date.now().toString(),
+    name: name,
+    age: age,
+    phone: phone,
+    roomNumber: roomNumber,
+    checkIndate: checkInDate,
+  };
+  this.resident.push(newResident);
+  room.isOccupied = true;
+  this.saveData();
+}
+```
+
+<Note>
+  Each resident is assigned a unique ID based on the current timestamp (`Date.now().toString()`). The room is automatically marked as occupied when a resident is added.
+</Note>
+
+## Updating resident information
+
+You can modify existing resident details at any time, including transferring them to a different room.
+
+<Steps>
+  <Step title="Click the edit button">
+    In the residents table, click the "✏️ Edit" button next to the resident you want to modify.
+  </Step>
+
+  <Step title="Modify the information">
+    The form will be populated with the current resident data. The submit button changes to "Update Resident Info" with an orange background color.
+  </Step>
+
+  <Step title="Change room (optional)">
+    If transferring to a new room, select a different room from the dropdown. The system will validate that the new room is available.
+  </Step>
+
+  <Step title="Save changes">
+    Click "Update Resident Info" to save the changes. The old room (if changed) will be marked as vacant, and the new room will be marked as occupied.
+  </Step>
+</Steps>
+
+### Edit mode UI behavior
+
+The UI provides visual feedback when entering edit mode:
+
+```typescript ui.ts
+private startEditing(id: string): void {
+  const resident = this.service.getResidents.find((r) => r.id === id);
+  if (!resident) return;
+
+  this.editResidentId = id;
+
+  (document.getElementById("name") as HTMLInputElement).value = resident.name;
+  (document.getElementById("age") as HTMLInputElement).value =
+    resident.age.toString();
+  (document.getElementById("phone") as HTMLInputElement).value =
+    resident.phone;
+  (document.getElementById("checkInDate") as HTMLInputElement).value =
+    resident.checkIndate;
+
+  this.populateRoomDropdown(resident.roomNumber);
+
+  this.submitBtn.textContent = "Update Resident Info";
+  this.submitBtn.style.backgroundColor = "#ffa500"; // Orange for edit mode
+
+  this.form.scrollIntoView({ behavior: "smooth" });
+}
+```
+
+### Room transfer logic
+
+When updating a resident's room assignment, the system handles the room status changes:
+
+```typescript hostelService.ts
+updateResident(residentId: string, updatedData: Partial<Resident>) {
+  const index = this.resident.findIndex((r) => r.id === residentId);
+  if (index === -1) throw new Error("Resident not found");
+
+  const oldResident = this.resident[index];
+
+  if (
+    updatedData.roomNumber &&
+    updatedData.roomNumber !== oldResident.roomNumber
+  ) {
+    const newRoom = this.rooms.find(
+      (r) => r.roomNumber === updatedData.roomNumber,
+    );
+    if (!newRoom || newRoom.isOccupied)
+      throw new Error("New room unavailable");
+
+    const oldRoom = this.rooms.find(
+      (r) => r.roomNumber === oldResident.roomNumber,
+    );
+    if (oldRoom) oldRoom.isOccupied = false;
+
+    newRoom.isOccupied = true;
+  }
+
+  this.resident[index] = { ...oldResident, ...updatedData };
+  this.saveData();
+}
+```
+
+<Warning>
+  When transferring a resident to a new room, the system validates that the new room is available. If the room is occupied, the update will fail with an error message.
+</Warning>
+
+## Removing a resident
+
+When a resident checks out, you can remove them from the system.
+
+<Steps>
+  <Step title="Click the delete button">
+    In the residents table, click the "Delete" button next to the resident you want to remove.
+  </Step>
+
+  <Step title="Confirm deletion">
+    A confirmation dialog will appear asking "Are you sure you want to delete this resident?"
+  </Step>
+
+  <Step title="Room becomes available">
+    Once confirmed, the resident is removed and their room is automatically marked as vacant and becomes available for new residents.
+  </Step>
+</Steps>
+
+### Delete implementation
+
+The deletion process ensures the room is properly freed:
+
+```typescript hostelService.ts
+removeResident(residentId: string) {
+  const index = this.resident.findIndex((r) => r.id === residentId);
+  if (index == -1) {
+    throw new Error("Resident not found");
+  }
+  const room = this.rooms.find(
+    (r) => r.roomNumber === this.resident[index].roomNumber,
+  );
+  if (!room) {
+    throw new Error("Room doesn't exist");
+  }
+  room.isOccupied = false;
+  this.resident.splice(index, 1);
+  this.saveData();
+}
+```
+
+### UI delete handler
+
+The delete action is handled through event delegation on the table:
+
+```typescript ui.ts
+private handleTableClicks(): void {
+  this.tableBody.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const id = target.getAttribute("data-id");
+
+    if (!id) return;
+
+    if (target.classList.contains("deleteBtn")) {
+      if (confirm("Are you sure you want to delete this resident?")) {
+        this.service.removeResident(id);
+        this.refreshAll();
+      }
+    }
+
+    if (target.classList.contains("editBtn")) {
+      this.startEditing(id);
+    }
+  });
+}
+```
+
+## Data persistence
+
+All resident data is automatically saved to the browser's local storage.
+
+### Data models
+
+The system uses TypeScript interfaces for type safety:
+
+```typescript residents.ts
+export interface Resident {
+  id: string;
+  name: string;
+  age: number;
+  phone: string;
+  checkIndate: string;
+  roomNumber: number;
+}
+```
+
+### Storage implementation
+
+Data is persisted using localStorage:
+
+```typescript hostelService.ts
+saveData() {
+  localStorage.setItem("rooms", JSON.stringify(this.rooms));
+  localStorage.setItem("residents", JSON.stringify(this.resident));
+}
+
+loadData(): void {
+  const storedRooms = localStorage.getItem("rooms");
+  const storedResidents = localStorage.getItem("residents");
+  if (storedRooms) {
+    this.rooms = JSON.parse(storedRooms);
+  } else {
+    this.rooms = roomsAvailability;
+  }
+  if (storedResidents) {
+    this.resident = JSON.parse(storedResidents);
+  } else {
+    this.resident = [];
+  }
+}
+```
+
+<Note>
+  The browser's localStorage provides up to 5MB of storage. All changes to residents (add, update, delete) are automatically persisted and will be available even after closing the browser.
+</Note>
+
+## Residents table
+
+All current residents are displayed in a table with the following columns:
+
+```html index.html
+<table class="resident-table">
+  <thead>
+    <tr>
+      <th>Edit</th>
+      <th>Name</th>
+      <th>Age</th>
+      <th>Phone</th>
+      <th>Room</th>
+      <th>Check-In</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="residentTableBody"></tbody>
+</table>
+```
+
+The table is dynamically populated using JavaScript:
+
+```typescript ui.ts
+private renderResidents(searchText: string = ""): void {
+  this.tableBody.innerHTML = "";
+  const residents = this.service.getResidents.filter((r) =>
+    r.name.toLowerCase().includes(searchText.toLowerCase()),
+  );
+  if (residents.length === 0) {
+    this.tableBody.innerHTML = `<tr>
+     <td colspan="7" style="text-align:center;">No residents found</td>
+     </tr> `;
+    return;
+  }
+
+  residents.forEach((resident) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><button data-id="${resident.id}" class="editBtn">✏️ Edit</button></td>
+      <td>${resident.name}</td>
+      <td>${resident.age}</td>
+      <td>${resident.phone}</td>
+      <td>${resident.roomNumber}</td>
+      <td>${resident.checkIndate}</td>
+      <td><button data-id="${resident.id}" class="deleteBtn">Delete</button></td>
+    `;
+    this.tableBody.appendChild(row);
+  });
+}
+```

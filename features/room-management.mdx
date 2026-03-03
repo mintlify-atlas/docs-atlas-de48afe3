@@ -1,0 +1,317 @@
+---
+title: Room management
+description: Track room occupancy, view statistics, and manage room availability in the hostel
+---
+
+The room management system provides real-time tracking of room occupancy status and comprehensive statistics about room availability.
+
+## Room overview
+
+The system displays a real-time overview of all rooms in the hostel, showing total rooms, occupied rooms, and vacant rooms.
+
+### Statistics display
+
+Room statistics are prominently displayed at the top of the interface:
+
+```html index.html
+<div class="section-divider">
+  <h3>Room Overview</h3>
+  <div id="stats" class="stats-text"></div>
+</div>
+```
+
+The stats are dynamically rendered with color-coded indicators:
+
+```typescript ui.ts
+private renderStats(): void {
+  const stats = this.service.getRoomStats();
+  this.statsDiv.innerHTML = `
+    <p>Total Rooms: <strong>${stats.total}</strong> | 
+       Occupied: <span style="color: red;">${stats.occupied}</span> | 
+       Vacant: <span style="color: green;">${stats.vacant}</span></p>
+  `;
+}
+```
+
+<Note>
+  Statistics are color-coded for quick visual reference:
+  - **Occupied rooms**: Red text
+  - **Vacant rooms**: Green text
+</Note>
+
+## Room data model
+
+Rooms are represented using a TypeScript interface:
+
+```typescript rooms.ts
+export interface Rooms {
+  roomNumber: number;
+  isOccupied: boolean;
+}
+```
+
+Each room has:
+- **roomNumber**: Unique identifier for the room
+- **isOccupied**: Boolean flag indicating occupancy status
+
+## Calculating room statistics
+
+The system provides methods to retrieve room information:
+
+### Get room stats
+
+Returns comprehensive statistics about room occupancy:
+
+```typescript hostelService.ts
+getRoomStats() {
+  const total = this.rooms.length;
+  const occupied = this.getOccupiedRooms().length;
+  const vacant = total - occupied;
+  return { total, occupied, vacant };
+}
+```
+
+### Get vacant rooms
+
+Returns an array of all unoccupied rooms:
+
+```typescript hostelService.ts
+getVacantRooms() {
+  return this.rooms.filter((r) => !r.isOccupied);
+}
+```
+
+### Get occupied rooms
+
+Returns an array of all occupied rooms:
+
+```typescript hostelService.ts
+getOccupiedRooms() {
+  return this.rooms.filter((r) => r.isOccupied);
+}
+```
+
+## Room dropdown
+
+The room selection dropdown automatically displays only available rooms, making it impossible to assign a resident to an occupied room.
+
+### Standard mode
+
+When adding a new resident, only vacant rooms are shown:
+
+```typescript ui.ts
+private populateRoomDropdown(currentRoomNumber?: number): void {
+  this.roomSelect.innerHTML = "";
+  const vacantRooms = this.service.getVacantRooms();
+
+  let options = [...vacantRooms];
+  if (currentRoomNumber) {
+    const currentRoomObj = this.service.getRooms.find(
+      (r) => r.roomNumber === currentRoomNumber,
+    );
+    if (
+      currentRoomObj &&
+      !options.find((r) => r.roomNumber === currentRoomNumber)
+    ) {
+      options.push(currentRoomObj);
+    }
+  }
+
+  options.sort((a, b) => a.roomNumber - b.roomNumber);
+
+  if (options.length === 0) {
+    this.roomSelect.innerHTML = `<option disabled selected>No Vacant Rooms</option>`;
+    return;
+  }
+
+  options.forEach((room) => {
+    const option = document.createElement("option");
+    option.value = room.roomNumber.toString();
+    option.textContent = `Room ${room.roomNumber}`;
+    if (room.roomNumber === currentRoomNumber) option.selected = true;
+    this.roomSelect.appendChild(option);
+  });
+}
+```
+
+<Steps>
+  <Step title="Fetch vacant rooms">
+    The system retrieves all rooms where `isOccupied` is `false`.
+  </Step>
+
+  <Step title="Include current room (edit mode)">
+    When editing a resident, their current room is included in the dropdown even if it's occupied, allowing them to keep the same room.
+  </Step>
+
+  <Step title="Sort rooms numerically">
+    Rooms are sorted in ascending order by room number for easy navigation.
+  </Step>
+
+  <Step title="Handle no availability">
+    If no rooms are available, a disabled option displays "No Vacant Rooms".
+  </Step>
+</Steps>
+
+### Edit mode behavior
+
+When editing a resident's information, the dropdown includes their current room even though it's occupied:
+
+```typescript ui.ts
+if (currentRoomNumber) {
+  const currentRoomObj = this.service.getRooms.find(
+    (r) => r.roomNumber === currentRoomNumber,
+  );
+  if (
+    currentRoomObj &&
+    !options.find((r) => r.roomNumber === currentRoomNumber)
+  ) {
+    options.push(currentRoomObj);
+  }
+}
+```
+
+<Note>
+  In edit mode, the resident's current room appears in the dropdown and is pre-selected, even if they're currently occupying it. This allows residents to update their information without changing rooms.
+</Note>
+
+## Automatic room status updates
+
+Room occupancy status is automatically managed by the system during resident operations.
+
+### When adding a resident
+
+<CodeGroup>
+```typescript Validation
+const room = this.rooms.find((r) => r.roomNumber === roomNumber);
+if (!room) {
+  throw new Error("Room doesn't exist");
+} else if (room.isOccupied) {
+  throw new Error("Room is already occupied");
+}
+```
+
+```typescript Update status
+this.resident.push(newResident);
+room.isOccupied = true;
+this.saveData();
+```
+</CodeGroup>
+
+The system validates that the room exists and is vacant before marking it as occupied.
+
+### When removing a resident
+
+When a resident is removed, their room is automatically freed:
+
+```typescript hostelService.ts
+removeResident(residentId: string) {
+  const index = this.resident.findIndex((r) => r.id === residentId);
+  if (index == -1) {
+    throw new Error("Resident not found");
+  }
+  const room = this.rooms.find(
+    (r) => r.roomNumber === this.resident[index].roomNumber,
+  );
+  if (!room) {
+    throw new Error("Room doesn't exist");
+  }
+  room.isOccupied = false;
+  this.resident.splice(index, 1);
+  this.saveData();
+}
+```
+
+### When transferring rooms
+
+During a room transfer, the system updates both the old and new room statuses:
+
+```typescript hostelService.ts
+if (
+  updatedData.roomNumber &&
+  updatedData.roomNumber !== oldResident.roomNumber
+) {
+  const newRoom = this.rooms.find(
+    (r) => r.roomNumber === updatedData.roomNumber,
+  );
+  if (!newRoom || newRoom.isOccupied)
+    throw new Error("New room unavailable");
+
+  const oldRoom = this.rooms.find(
+    (r) => r.roomNumber === oldResident.roomNumber,
+  );
+  if (oldRoom) oldRoom.isOccupied = false;
+
+  newRoom.isOccupied = true;
+}
+```
+
+<Warning>
+  All room status changes are validated before being applied. The system will throw an error and prevent the operation if:
+  - The room doesn't exist
+  - The room is already occupied (when adding a new resident)
+  - The new room is unavailable (when transferring)
+</Warning>
+
+## Real-time updates
+
+The UI automatically refreshes all room-related information after any operation:
+
+```typescript ui.ts
+private refreshAll(): void {
+  this.searchInput.value = "";
+  this.renderResidents();
+  this.renderStats();
+  this.populateRoomDropdown();
+}
+```
+
+This ensures that:
+- Room statistics are always current
+- The room dropdown shows accurate availability
+- The residents table reflects the latest assignments
+
+## Data persistence
+
+Room data is stored alongside resident data in localStorage:
+
+```typescript hostelService.ts
+saveData() {
+  localStorage.setItem("rooms", JSON.stringify(this.rooms));
+  localStorage.setItem("residents", JSON.stringify(this.resident));
+}
+
+loadData(): void {
+  const storedRooms = localStorage.getItem("rooms");
+  const storedResidents = localStorage.getItem("residents");
+  if (storedRooms) {
+    this.rooms = JSON.parse(storedRooms);
+  } else {
+    this.rooms = roomsAvailability;
+  }
+  if (storedResidents) {
+    this.resident = JSON.parse(storedResidents);
+  } else {
+    this.resident = [];
+  }
+}
+```
+
+<Note>
+  On first load, if no room data exists in localStorage, the system initializes rooms from the `roomsAvailability` default data.
+</Note>
+
+## Room getters
+
+The service provides getter methods for accessing room data:
+
+```typescript hostelService.ts
+get getRooms() {
+  return this.rooms;
+}
+
+get getResidents() {
+  return this.resident;
+}
+```
+
+These getters are used throughout the UI to access current room and resident information.

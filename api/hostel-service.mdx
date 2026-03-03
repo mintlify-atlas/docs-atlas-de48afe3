@@ -1,0 +1,247 @@
+---
+title: hostelService class
+description: Core service class for managing hostel operations including residents and rooms
+---
+
+The `hostelService` class is the main service layer that handles all business logic for the hostel management system. It manages residents, rooms, and provides methods for CRUD operations with localStorage persistence.
+
+## Constructor
+
+```typescript
+constructor()
+```
+
+Initializes the service and automatically loads data from localStorage.
+
+```typescript
+import { hostelService } from './services/hostelService.js';
+
+const service = new hostelService();
+```
+
+## Properties
+
+<ParamField path="rooms" type="Rooms[]" default="[]">
+  Private array storing all room data
+</ParamField>
+
+<ParamField path="resident" type="Resident[]" default="[]">
+  Private array storing all resident data
+</ParamField>
+
+## Methods
+
+### loadData
+
+```typescript
+loadData(): void
+```
+
+Loads rooms and residents data from browser's localStorage. If no data exists in localStorage, initializes rooms with default data from `roomsAvailability` and residents as an empty array.
+
+```typescript
+service.loadData();
+```
+
+### saveData
+
+```typescript
+saveData(): void
+```
+
+Persists current rooms and residents data to localStorage in JSON format.
+
+```typescript
+service.saveData();
+```
+
+### addResident
+
+```typescript
+addResident(
+  name: string,
+  age: number,
+  phone: string,
+  roomNumber: number,
+  checkInDate: string
+): void
+```
+
+Adds a new resident to the hostel and marks their room as occupied.
+
+<ParamField path="name" type="string" required>
+  The resident's full name
+</ParamField>
+
+<ParamField path="age" type="number" required>
+  The resident's age
+</ParamField>
+
+<ParamField path="phone" type="string" required>
+  The resident's phone number
+</ParamField>
+
+<ParamField path="roomNumber" type="number" required>
+  The room number to assign to the resident
+</ParamField>
+
+<ParamField path="checkInDate" type="string" required>
+  The check-in date in string format
+</ParamField>
+
+**Throws:**
+- Error: "Room doesn't exist" if the room number is invalid
+- Error: "Room is already occupied" if the room is not available
+
+```typescript
+service.addResident("John Doe", 25, "123-456-7890", 101, "2024-03-01");
+```
+
+### removeResident
+
+```typescript
+removeResident(residentId: string): void
+```
+
+Removes a resident from the hostel and marks their room as vacant.
+
+<ParamField path="residentId" type="string" required>
+  The unique ID of the resident to remove
+</ParamField>
+
+**Throws:**
+- Error: "Resident not found" if the resident ID doesn't exist
+- Error: "Room doesn't exist" if the associated room is not found
+
+```typescript
+service.removeResident("1234567890");
+```
+
+### updateResident
+
+```typescript
+updateResident(residentId: string, updatedData: Partial<Resident>): void
+```
+
+Updates an existing resident's information. If the room number is changed, automatically handles room occupancy status updates.
+
+<ParamField path="residentId" type="string" required>
+  The unique ID of the resident to update
+</ParamField>
+
+<ParamField path="updatedData" type="Partial<Resident>" required>
+  Object containing the fields to update
+</ParamField>
+
+**Throws:**
+- Error: "Resident not found" if the resident ID doesn't exist
+- Error: "New room unavailable" if changing to a room that doesn't exist or is occupied
+
+```typescript
+service.updateResident("1234567890", {
+  name: "Jane Doe",
+  age: 26,
+  roomNumber: 102
+});
+```
+
+### getVacantRooms
+
+```typescript
+getVacantRooms(): Rooms[]
+```
+
+Returns an array of all rooms that are currently vacant.
+
+**Returns:** Array of `Rooms` objects where `isOccupied` is `false`
+
+```typescript
+const vacantRooms = service.getVacantRooms();
+console.log(`${vacantRooms.length} rooms available`);
+```
+
+### getOccupiedRooms
+
+```typescript
+getOccupiedRooms(): Rooms[]
+```
+
+Returns an array of all rooms that are currently occupied.
+
+**Returns:** Array of `Rooms` objects where `isOccupied` is `true`
+
+```typescript
+const occupiedRooms = service.getOccupiedRooms();
+console.log(`${occupiedRooms.length} rooms occupied`);
+```
+
+### getRoomStats
+
+```typescript
+getRoomStats(): { total: number; occupied: number; vacant: number }
+```
+
+Calculates and returns statistics about room occupancy.
+
+**Returns:** Object containing:
+- `total`: Total number of rooms
+- `occupied`: Number of occupied rooms
+- `vacant`: Number of vacant rooms
+
+```typescript
+const stats = service.getRoomStats();
+console.log(`Total: ${stats.total}, Occupied: ${stats.occupied}, Vacant: ${stats.vacant}`);
+```
+
+## Getters
+
+### getRooms
+
+```typescript
+get getRooms(): Rooms[]
+```
+
+Gets the complete array of all rooms.
+
+```typescript
+const allRooms = service.getRooms;
+```
+
+### getResidents
+
+```typescript
+get getResidents(): Resident[]
+```
+
+Gets the complete array of all residents.
+
+```typescript
+const allResidents = service.getResidents;
+```
+
+## Usage example
+
+```typescript
+import { hostelService } from './services/hostelService.js';
+
+// Initialize service
+const service = new hostelService();
+
+// Add a new resident
+try {
+  service.addResident("John Doe", 25, "123-456-7890", 101, "2024-03-01");
+  console.log("Resident added successfully");
+} catch (error) {
+  console.error(error.message);
+}
+
+// Get room statistics
+const stats = service.getRoomStats();
+console.log(`Occupancy: ${stats.occupied}/${stats.total}`);
+
+// Update resident information
+service.updateResident("1234567890", { phone: "098-765-4321" });
+
+// Remove a resident
+service.removeResident("1234567890");
+```

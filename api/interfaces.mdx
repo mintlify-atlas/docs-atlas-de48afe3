@@ -1,0 +1,171 @@
+---
+title: Interfaces
+description: TypeScript interfaces for Resident and Rooms data models
+---
+
+The hostel management system uses two main interfaces to define the structure of residents and rooms.
+
+## Resident
+
+```typescript
+interface Resident {
+  id: string;
+  name: string;
+  age: number;
+  phone: string;
+  checkIndate: string;
+  roomNumber: number;
+}
+```
+
+Represents a hostel resident with their personal information and room assignment.
+
+### Properties
+
+<ParamField path="id" type="string" required>
+  Unique identifier for the resident. Generated using `Date.now().toString()` when a new resident is added.
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  Full name of the resident
+</ParamField>
+
+<ParamField path="age" type="number" required>
+  Age of the resident in years
+</ParamField>
+
+<ParamField path="phone" type="string" required>
+  Contact phone number for the resident
+</ParamField>
+
+<ParamField path="checkIndate" type="string" required>
+  Date when the resident checked into the hostel (stored as string)
+</ParamField>
+
+<ParamField path="roomNumber" type="number" required>
+  The room number assigned to this resident
+</ParamField>
+
+### Usage example
+
+```typescript
+import { Resident } from './model/residents.js';
+
+const newResident: Resident = {
+  id: "1709481234567",
+  name: "John Doe",
+  age: 25,
+  phone: "123-456-7890",
+  checkIndate: "2024-03-01",
+  roomNumber: 101
+};
+```
+
+### Partial updates
+
+The `updateResident` method uses `Partial<Resident>` to allow updating specific fields:
+
+```typescript
+// Update only the phone number
+service.updateResident("1709481234567", {
+  phone: "098-765-4321"
+});
+
+// Update multiple fields
+service.updateResident("1709481234567", {
+  age: 26,
+  roomNumber: 102
+});
+```
+
+## Rooms
+
+```typescript
+interface Rooms {
+  roomNumber: number;
+  isOccupied: boolean;
+}
+```
+
+Represents a hostel room and its occupancy status.
+
+### Properties
+
+<ParamField path="roomNumber" type="number" required>
+  Unique room number identifier
+</ParamField>
+
+<ParamField path="isOccupied" type="boolean" required>
+  Indicates whether the room is currently occupied (`true`) or vacant (`false`)
+</ParamField>
+
+### Usage example
+
+```typescript
+import { Rooms } from './model/rooms.js';
+
+const room: Rooms = {
+  roomNumber: 101,
+  isOccupied: false
+};
+```
+
+### Room operations
+
+```typescript
+// Get all vacant rooms
+const vacantRooms: Rooms[] = service.getVacantRooms();
+
+// Get all occupied rooms
+const occupiedRooms: Rooms[] = service.getOccupiedRooms();
+
+// Check if a specific room is vacant
+const allRooms = service.getRooms;
+const room101 = allRooms.find(r => r.roomNumber === 101);
+if (room101 && !room101.isOccupied) {
+  console.log("Room 101 is available");
+}
+```
+
+## Data persistence
+
+Both interfaces are serialized to JSON and stored in browser localStorage:
+
+```typescript
+// Storage keys
+localStorage.setItem('residents', JSON.stringify(residents));
+localStorage.setItem('rooms', JSON.stringify(rooms));
+
+// Retrieval
+const storedResidents: Resident[] = JSON.parse(localStorage.getItem('residents'));
+const storedRooms: Rooms[] = JSON.parse(localStorage.getItem('rooms'));
+```
+
+## Type safety
+
+These interfaces provide compile-time type checking:
+
+```typescript
+// ✅ Valid
+const resident: Resident = {
+  id: "123",
+  name: "John",
+  age: 25,
+  phone: "123-456-7890",
+  checkIndate: "2024-03-01",
+  roomNumber: 101
+};
+
+// ❌ Type error - missing required field
+const invalid: Resident = {
+  id: "123",
+  name: "John"
+  // Error: missing age, phone, checkIndate, roomNumber
+};
+
+// ❌ Type error - wrong type
+const wrongType: Rooms = {
+  roomNumber: "101", // Error: should be number
+  isOccupied: false
+};
+```

@@ -1,0 +1,383 @@
+---
+title: Local storage
+description: How the Hostel Management System uses browser localStorage for data persistence
+---
+
+The Hostel Management System uses the browser's localStorage API to persist resident and room data. This eliminates the need for a backend database while maintaining data across browser sessions.
+
+## Storage overview
+
+The system stores data in two localStorage keys:
+
+<CardGroup cols={2}>
+  <Card title="rooms" icon="door-open">
+    Array of room objects with occupancy status. Contains 10 rooms (101-110) by default.
+  </Card>
+  
+  <Card title="residents" icon="users">
+    Array of resident records with personal information and room assignments.
+  </Card>
+</CardGroup>
+
+## Implementation
+
+The storage implementation is contained in the `hostelService` class at `src/services/hostelService.ts`.
+
+### Loading data
+
+Data is loaded when the service is instantiated:
+
+```typescript
+constructor() {
+  this.loadData();
+}
+
+loadData(): void {
+  const storedRooms = localStorage.getItem("rooms");
+  const storedResidents = localStorage.getItem("residents");
+  if (storedRooms) {
+    this.rooms = JSON.parse(storedRooms);
+  } else {
+    this.rooms = roomsAvailability;
+  }
+  if (storedResidents) {
+    this.resident = JSON.parse(storedResidents);
+  } else {
+    this.resident = [];
+  }
+}
+```
+
+See `src/services/hostelService.ts:9` for the constructor and `src/services/hostelService.ts:14` for the `loadData()` method.
+
+<Info>
+On first load, if no stored data exists, the system initializes with default room data from `src/data/roomsData.ts` and an empty residents array.
+</Info>
+
+### Saving data
+
+Data is automatically saved after every state modification:
+
+```typescript
+saveData() {
+  localStorage.setItem("rooms", JSON.stringify(this.rooms));
+  localStorage.setItem("residents", JSON.stringify(this.resident));
+}
+```
+
+See `src/services/hostelService.ts:38` for the implementation.
+
+<Warning>
+The `saveData()` method is called at the end of every operation that modifies state (add, update, remove). Forgetting to call this method would result in data loss on page refresh.
+</Warning>
+
+## Auto-save mechanism
+
+The system implements an auto-save pattern where every state mutation automatically triggers persistence:
+
+<Tabs>
+  <Tab title="Add resident">
+    ```typescript
+    addResident(
+      name: string,
+      age: number,
+      phone: string,
+      roomNumber: number,
+      checkInDate: string,
+    ) {
+      // ... validation logic ...
+      const newResident: Resident = {
+        id: Date.now().toString(),
+        name: name,
+        age: age,
+        phone: phone,
+        roomNumber: roomNumber,
+        checkIndate: checkInDate,
+      };
+      this.resident.push(newResident);
+      room.isOccupied = true;
+      this.saveData(); // Automatic save
+    }
+    ```
+    
+    Reference: `src/services/hostelService.ts:44`
+  </Tab>
+  
+  <Tab title="Update resident">
+    ```typescript
+    updateResident(residentId: string, updatedData: Partial<Resident>) {
+      const index = this.resident.findIndex((r) => r.id === residentId);
+      if (index === -1) throw new Error("Resident not found");
+      // ... update logic ...
+      this.resident[index] = { ...oldResident, ...updatedData };
+      this.saveData(); // Automatic save
+    }
+    ```
+    
+    Reference: `src/services/hostelService.ts:89`
+  </Tab>
+  
+  <Tab title="Remove resident">
+    ```typescript
+    removeResident(residentId: string) {
+      const index = this.resident.findIndex((r) => r.id === residentId);
+      if (index == -1) {
+        throw new Error("Resident not found");
+      }
+      // ... removal logic ...
+      room.isOccupied = false;
+      this.resident.splice(index, 1);
+      this.saveData(); // Automatic save
+    }
+    ```
+    
+    Reference: `src/services/hostelService.ts:73`
+  </Tab>
+</Tabs>
+
+## Storage capacity
+
+The code includes a comment about localStorage capacity:
+
+```typescript
+//web storage->browser gives storage of 5mb in json formate. This is also a web API
+```
+
+See `src/services/hostelService.ts:12`.
+
+<Note>
+Most browsers provide 5-10MB of localStorage space per origin. For a hostel management system with hundreds of residents, this is more than sufficient. Each resident record is approximately 150-200 bytes.
+</Note>
+
+### Capacity estimation
+
+For typical usage:
+
+| Item | Size per record | Max records (5MB) |
+|------|----------------|------------------|
+| Resident | ~200 bytes | ~25,000 residents |
+| Room | ~50 bytes | ~100,000 rooms |
+
+## Data format
+
+Data is stored as JSON strings in localStorage:
+
+<Tabs>
+  <Tab title="Rooms data">
+    ```json
+    [
+      {"roomNumber":101,"isOccupied":false},
+      {"roomNumber":102,"isOccupied":true},
+      {"roomNumber":103,"isOccupied":false},
+      {"roomNumber":104,"isOccupied":false},
+      {"roomNumber":105,"isOccupied":true},
+      {"roomNumber":106,"isOccupied":false},
+      {"roomNumber":107,"isOccupied":false},
+      {"roomNumber":108,"isOccupied":false},
+      {"roomNumber":109,"isOccupied":false},
+      {"roomNumber":110,"isOccupied":false}
+    ]
+    ```
+    
+    Stored under the key `"rooms"`
+  </Tab>
+  
+  <Tab title="Residents data">
+    ```json
+    [
+      {
+        "id":"1709472000000",
+        "name":"John Doe",
+        "age":25,
+        "phone":"555-0123",
+        "roomNumber":102,
+        "checkIndate":"2024-03-01"
+      },
+      {
+        "id":"1709472100000",
+        "name":"Jane Smith",
+        "age":28,
+        "phone":"555-0456",
+        "roomNumber":105,
+        "checkIndate":"2024-03-02"
+      }
+    ]
+    ```
+    
+    Stored under the key `"residents"`
+  </Tab>
+</Tabs>
+
+## Inspecting stored data
+
+You can inspect the stored data using browser developer tools:
+
+<Steps>
+  <Step title="Open DevTools">
+    Press `F12` or right-click and select "Inspect" to open browser developer tools.
+  </Step>
+  
+  <Step title="Navigate to Application/Storage">
+    In Chrome: Go to the **Application** tab
+    In Firefox: Go to the **Storage** tab
+  </Step>
+  
+  <Step title="Find localStorage">
+    Expand **Local Storage** in the sidebar and select your domain.
+  </Step>
+  
+  <Step title="View keys">
+    You'll see the `rooms` and `residents` keys with their JSON values.
+  </Step>
+</Steps>
+
+## Data initialization
+
+The system uses a fallback pattern for initial data:
+
+```typescript
+if (storedRooms) {
+  this.rooms = JSON.parse(storedRooms);
+} else {
+  this.rooms = roomsAvailability; // Default from roomsData.ts
+}
+if (storedResidents) {
+  this.resident = JSON.parse(storedResidents);
+} else {
+  this.resident = []; // Empty array
+}
+```
+
+This ensures:
+- **First load**: Rooms are initialized from `src/data/roomsData.ts`, residents start empty
+- **Subsequent loads**: Data is loaded from localStorage
+- **After clearing storage**: System resets to initial state
+
+## Clearing stored data
+
+To reset the application to its initial state:
+
+<CodeGroup>
+```javascript Browser console
+// Clear all hostel data
+localStorage.removeItem('rooms');
+localStorage.removeItem('residents');
+
+// Or clear all localStorage
+localStorage.clear();
+
+// Then refresh the page
+location.reload();
+```
+
+```javascript Programmatically
+// Add a reset method to hostelService class
+resetData() {
+  localStorage.removeItem('rooms');
+  localStorage.removeItem('residents');
+  this.loadData(); // Reload with defaults
+}
+```
+</CodeGroup>
+
+## Limitations and considerations
+
+<AccordionGroup>
+  <Accordion title="No server synchronization">
+    Data is stored only in the browser. It cannot be accessed from other devices or browsers, and is lost if browser data is cleared.
+  </Accordion>
+  
+  <Accordion title="No backup mechanism">
+    There's no automatic backup. Users should export data if they need to preserve it outside the browser.
+  </Accordion>
+  
+  <Accordion title="Single-user only">
+    localStorage is per-browser, so the system doesn't support multiple concurrent users or collaboration.
+  </Accordion>
+  
+  <Accordion title="No data migration">
+    Changing data structures requires manual migration or clearing existing data. There's no built-in versioning system.
+  </Accordion>
+  
+  <Accordion title="Browser limitations">
+    Private/incognito mode, browser extensions, or security settings may restrict localStorage access.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+Users browsing in private/incognito mode will lose all data when closing the browser, as localStorage is cleared on session end in these modes.
+</Warning>
+
+## Benefits of localStorage
+
+Despite limitations, localStorage offers several advantages for this application:
+
+<CardGroup cols={2}>
+  <Card title="Zero backend" icon="server">
+    No server setup, hosting, or database management required. The application is completely self-contained.
+  </Card>
+  
+  <Card title="Instant persistence" icon="bolt">
+    Data is saved synchronously with no network latency. All operations complete immediately.
+  </Card>
+  
+  <Card title="Offline-first" icon="wifi">
+    Works completely offline. No internet connection required after initial page load.
+  </Card>
+  
+  <Card title="Simple API" icon="code">
+    Just `setItem()` and `getItem()`. No query languages, ORMs, or connection management.
+  </Card>
+</CardGroup>
+
+## Migration to backend storage
+
+If you need to migrate to a backend database later:
+
+<Steps>
+  <Step title="Extract storage interface">
+    Create an interface for storage operations:
+    ```typescript
+    interface Storage {
+      loadRooms(): Promise<Rooms[]>;
+      loadResidents(): Promise<Resident[]>;
+      saveRooms(rooms: Rooms[]): Promise<void>;
+      saveResidents(residents: Resident[]): Promise<void>;
+    }
+    ```
+  </Step>
+  
+  <Step title="Implement localStorage adapter">
+    Wrap current implementation in the interface:
+    ```typescript
+    class LocalStorageAdapter implements Storage {
+      async loadRooms(): Promise<Rooms[]> {
+        const stored = localStorage.getItem('rooms');
+        return stored ? JSON.parse(stored) : roomsAvailability;
+      }
+      // ... other methods
+    }
+    ```
+  </Step>
+  
+  <Step title="Create backend adapter">
+    Implement the same interface with API calls:
+    ```typescript
+    class BackendStorageAdapter implements Storage {
+      async loadRooms(): Promise<Rooms[]> {
+        const response = await fetch('/api/rooms');
+        return response.json();
+      }
+      // ... other methods
+    }
+    ```
+  </Step>
+  
+  <Step title="Update service layer">
+    Inject the storage adapter and update methods to use async/await. The business logic remains unchanged.
+  </Step>
+</Steps>
+
+<Info>
+The current synchronous storage pattern would need to become asynchronous when moving to a backend API. This would require updating all service methods to return Promises.
+</Info>

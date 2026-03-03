@@ -1,0 +1,149 @@
+---
+title: Introduction
+description: A lightweight, browser-based hostel management system for tracking residents and room occupancy
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.svg"
+  alt="Hostel Management System"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.svg"
+  alt="Hostel Management System"
+/>
+
+## Welcome to Hostel Management System
+
+A complete TypeScript-based solution for managing hostel residents and room availability. Built with vanilla TypeScript and localStorage for persistent data management, this system provides a clean, efficient interface for hostel administrators.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card
+    title="Resident management"
+    icon="users"
+    href="/quickstart"
+  >
+    Add, update, and delete resident records with comprehensive tracking of personal details and check-in dates
+  </Card>
+  <Card
+    title="Room tracking"
+    icon="door-open"
+    href="/installation"
+  >
+    Real-time room occupancy status with automatic availability updates when residents check in or out
+  </Card>
+  <Card
+    title="Search functionality"
+    icon="magnifying-glass"
+    href="/quickstart#searching-residents"
+  >
+    Instantly search and filter residents by name with live results
+  </Card>
+  <Card
+    title="Statistics dashboard"
+    icon="chart-simple"
+    href="/quickstart#viewing-statistics"
+  >
+    View total, occupied, and vacant room counts at a glance
+  </Card>
+</CardGroup>
+
+## System architecture
+
+The application follows a clean TypeScript architecture with separation of concerns:
+
+```typescript
+src/
+├── model/          # Data interfaces
+│   ├── residents.ts
+│   └── rooms.ts
+├── services/       # Business logic
+│   └── hostelService.ts
+├── ui/             # User interface
+│   └── ui.ts
+├── data/           # Initial data
+│   └── roomsData.ts
+└── app.ts          # Application entry point
+```
+
+<Note>
+All data is stored locally in your browser using localStorage with a 5MB capacity. No backend server is required.
+</Note>
+
+## Data models
+
+The system uses two core interfaces:
+
+**Resident interface:**
+```typescript
+interface Resident {
+  id: string;
+  name: string;
+  age: number;
+  phone: string;
+  checkIndate: string;
+  roomNumber: number;
+}
+```
+
+**Room interface:**
+```typescript
+interface Rooms {
+  roomNumber: number;
+  isOccupied: boolean;
+}
+```
+
+## Technology stack
+
+<CardGroup cols={3}>
+  <Card title="TypeScript" icon="code">
+    Type-safe development with ES6 modules
+  </Card>
+  <Card title="localStorage" icon="database">
+    Persistent browser-based storage
+  </Card>
+  <Card title="Vanilla JS" icon="js">
+    No framework dependencies required
+  </Card>
+</CardGroup>
+
+## Room configuration
+
+The system comes pre-configured with 10 rooms (101-110). All rooms are initially vacant and ready for assignment:
+
+```typescript
+export const roomsAvailability: Rooms[] = [
+  { roomNumber: 101, isOccupied: false },
+  { roomNumber: 102, isOccupied: false },
+  { roomNumber: 103, isOccupied: false },
+  // ... rooms 104-109
+  { roomNumber: 110, isOccupied: false },
+];
+```
+
+<Info>
+You can modify the room configuration in `src/data/roomsData.ts` to match your hostel's layout.
+</Info>
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get the system running in under 1 minute
+  </Card>
+  <Card
+    title="Installation guide"
+    icon="download"
+    href="/installation"
+  >
+    Detailed setup instructions and development workflow
+  </Card>
+</CardGroup>

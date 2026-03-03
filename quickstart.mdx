@@ -1,80 +1,188 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get the Hostel Management System up and running in minutes
 ---
 
-## Get started in three steps
+<Steps>
+  <Step title="Navigate to the project directory">
+    After downloading or cloning the project, navigate to the hostel management system directory:
 
-Get your documentation site running locally and make your first customization.
+    ```bash
+    cd "hostel management system"
+    ```
+  </Step>
 
-### Step 1: Set up your local environment
+  <Step title="Open the application">
+    Since this is a client-side application, simply open the `index.html` file in your web browser:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    # On macOS
+    open index.html
 
-### Step 2: Deploy your changes
+    # On Linux
+    xdg-open index.html
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    # On Windows
+    start index.html
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    Or you can directly double-click the `index.html` file in your file explorer.
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Start managing residents">
+    The application will load with an empty resident list and 10 available rooms (101-110). You're ready to start adding residents!
+  </Step>
+</Steps>
 
-### Step 3: Go live
+<Note>
+If you've made changes to the TypeScript source files, you'll need to compile them first. See the [installation](/installation) guide for details on building the project.
+</Note>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+## Adding your first resident
+
+<Steps>
+  <Step title="Fill out the registration form">
+    At the top of the page, you'll see a "Resident Registration" form with the following fields:
+
+    - **Name**: Enter the resident's name
+    - **Age**: Enter the resident's age
+    - **Phone**: Enter a contact phone number
+    - **Room Number**: Select an available room from the dropdown
+    - **Check-In Date**: Select the check-in date
+
+    <Info>
+    The room dropdown automatically shows only vacant rooms, making it easy to avoid double-booking.
+    </Info>
+  </Step>
+
+  <Step title="Submit the form">
+    Click the **Add Resident** button to register the new resident.
+
+    The system will:
+    - Validate that the room is available
+    - Create a unique ID for the resident
+    - Mark the room as occupied
+    - Save the data to localStorage
+    - Display the resident in the table below
+  </Step>
+
+  <Step title="View the updated statistics">
+    After adding a resident, check the "Room Overview" section to see updated statistics:
+
+    - Total Rooms: 10
+    - Occupied: 1 (shown in red)
+    - Vacant: 9 (shown in green)
+  </Step>
+</Steps>
+
+Here's the code that handles adding a resident from `src/services/hostelService.ts:44`:
+
+```typescript
+addResident(
+  name: string,
+  age: number,
+  phone: string,
+  roomNumber: number,
+  checkInDate: string,
+) {
+  const room = this.rooms.find((r) => r.roomNumber === roomNumber);
+  if (!room) {
+    throw new Error("Room doesn't exist");
+  } else if (room.isOccupied) {
+    throw new Error("Room is already occupied");
+  }
+
+  const newResident: Resident = {
+    id: Date.now().toString(),
+    name: name,
+    age: age,
+    phone: phone,
+    roomNumber: roomNumber,
+    checkIndate: checkInDate,
+  };
+  this.resident.push(newResident);
+  room.isOccupied = true;
+  this.saveData();
+}
+```
+
+## Editing a resident
+
+To update a resident's information:
+
+1. Click the **✏️ Edit** button next to any resident in the table
+2. The form will populate with their current information
+3. The submit button changes to "Update Resident Info" with an orange color
+4. Make your changes (including transferring to a different room if needed)
+5. Click **Update Resident Info**
+
+<Warning>
+When changing a resident's room, the system automatically frees the old room and marks the new room as occupied. The new room must be vacant.
+</Warning>
+
+## Removing a resident
+
+To check out a resident:
+
+1. Click the **Delete** button next to the resident in the table
+2. Confirm the deletion in the dialog
+3. The system automatically marks their room as vacant
+4. The resident is removed from the table
+
+## Searching for residents
+
+Use the search bar above the resident table to find residents by name. The search is:
+
+- **Case-insensitive**: Works with uppercase or lowercase
+- **Real-time**: Results update as you type
+- **Partial match**: Finds residents with names containing your search term
+
+```typescript
+private renderResidents(searchText: string = ""): void {
+  this.tableBody.innerHTML = "";
+  const residents = this.service.getResidents.filter((r) =>
+    r.name.toLowerCase().includes(searchText.toLowerCase()),
+  );
+  // ... render logic
+}
+```
+
+## Viewing statistics
+
+The "Room Overview" section shows real-time statistics:
+
+- **Total Rooms**: Total number of rooms in the system (10)
+- **Occupied**: Number of rooms with residents (shown in red)
+- **Vacant**: Number of available rooms (shown in green)
+
+These statistics update automatically after any resident operation.
+
+## Data persistence
+
+All resident and room data is automatically saved to your browser's localStorage. This means:
+
+- ✅ Data persists between browser sessions
+- ✅ No server or database required
+- ✅ Works offline
+- ⚠️ Data is specific to your browser and device
+
+<Tip>
+To clear all data and start fresh, open your browser's DevTools (F12), go to the Application/Storage tab, find localStorage, and delete the `rooms` and `residents` entries.
+</Tip>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Core Concepts" icon="book" href="/concepts/architecture">
+    Learn about the system architecture and data models
+  </Card>
+  <Card title="Features" icon="star" href="/features/resident-management">
+    Explore detailed feature documentation
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/hostel-service">
+    View the complete API documentation
+  </Card>
+  <Card title="Development" icon="hammer" href="/development/setup">
+    Set up a development environment
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

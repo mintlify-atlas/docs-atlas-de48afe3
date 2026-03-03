@@ -1,0 +1,251 @@
+---
+title: Search and filter
+description: Search for residents by name with real-time filtering
+---
+
+The search functionality allows you to quickly find specific residents by filtering the residents table in real-time as you type.
+
+## Search interface
+
+The search bar is located above the residents table:
+
+```html index.html
+<div class="section-divider">
+  <h3>Current Residents</h3>
+  <div class="search-container">
+    <input
+      type="text"
+      id="searchResident"
+      placeholder="Search by name..."
+    />
+  </div>
+  <table class="resident-table">
+    <!-- table content -->
+  </table>
+</div>
+```
+
+## How search works
+
+The search feature filters residents by name with the following characteristics:
+
+<Steps>
+  <Step title="Type in the search box">
+    As you type in the search input field, the table automatically filters to show only matching residents.
+  </Step>
+
+  <Step title="Case-insensitive matching">
+    The search is case-insensitive, so "john", "John", and "JOHN" will all match the same residents.
+  </Step>
+
+  <Step title="Partial matching">
+    The search uses partial matching, so typing "joh" will find "John", "Johnson", etc.
+  </Step>
+
+  <Step title="Instant results">
+    Results update instantly as you type, providing immediate feedback.
+  </Step>
+</Steps>
+
+## Implementation
+
+### Search event listener
+
+The search functionality is implemented using an input event listener:
+
+```typescript ui.ts
+private handleSearch(): void {
+  this.searchInput.addEventListener("input", () => {
+    const query = this.searchInput.value;
+    this.renderResidents(query);
+  });
+}
+```
+
+<Note>
+  The `input` event fires every time the user types or deletes a character, providing real-time search results.
+</Note>
+
+### Filter logic
+
+The `renderResidents` method accepts an optional search parameter:
+
+```typescript ui.ts
+private renderResidents(searchText: string = ""): void {
+  this.tableBody.innerHTML = "";
+  const residents = this.service.getResidents.filter((r) =>
+    r.name.toLowerCase().includes(searchText.toLowerCase()),
+  );
+  if (residents.length === 0) {
+    this.tableBody.innerHTML = `<tr>
+     <td colspan="7" style="text-align:center;">No residents found</td>
+     </tr> `;
+    return;
+  }
+
+  residents.forEach((resident) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><button data-id="${resident.id}" class="editBtn">✏️ Edit</button></td>
+      <td>${resident.name}</td>
+      <td>${resident.age}</td>
+      <td>${resident.phone}</td>
+      <td>${resident.roomNumber}</td>
+      <td>${resident.checkIndate}</td>
+      <td><button data-id="${resident.id}" class="deleteBtn">Delete</button></td>
+    `;
+    this.tableBody.appendChild(row);
+  });
+}
+```
+
+### Filter breakdown
+
+Let's break down how the filtering works:
+
+<CodeGroup>
+```typescript Get residents
+const residents = this.service.getResidents
+```
+
+```typescript Apply filter
+.filter((r) =>
+  r.name.toLowerCase().includes(searchText.toLowerCase()),
+)
+```
+
+```typescript Case conversion
+r.name.toLowerCase()  // Convert resident name to lowercase
+searchText.toLowerCase()  // Convert search query to lowercase
+```
+
+```typescript Partial match
+.includes(searchText.toLowerCase())  // Check if name contains the search text
+```
+</CodeGroup>
+
+## Empty state
+
+When no residents match the search query, a helpful message is displayed:
+
+```typescript ui.ts
+if (residents.length === 0) {
+  this.tableBody.innerHTML = `<tr>
+   <td colspan="7" style="text-align:center;">No residents found</td>
+   </tr> `;
+  return;
+}
+```
+
+This provides clear feedback to the user that their search didn't find any matches.
+
+<Note>
+  The empty state message spans all 7 columns of the table and is center-aligned for better visibility.
+</Note>
+
+## Search reset
+
+The search input is automatically cleared when certain operations occur:
+
+```typescript ui.ts
+private refreshAll(): void {
+  this.searchInput.value = "";
+  this.renderResidents();
+  this.renderStats();
+  this.populateRoomDropdown();
+}
+```
+
+The search is reset when:
+- A new resident is added
+- A resident is updated
+- A resident is deleted
+
+This ensures the user sees the complete list of residents after making changes.
+
+## UI initialization
+
+The search handler is set up during UI initialization:
+
+```typescript ui.ts
+private init(): void {
+  this.populateRoomDropdown();
+  this.renderResidents();
+  this.renderStats();
+  this.handleFormSubmit();
+  this.handleTableClicks();
+  this.handleSearch();  // Search initialization
+}
+```
+
+## Search field reference
+
+The search input is stored as a class property for easy access:
+
+```typescript ui.ts
+export class UI {
+  private form: HTMLFormElement;
+  private tableBody: HTMLTableSectionElement;
+  private statsDiv: HTMLDivElement;
+  private roomSelect: HTMLSelectElement;
+  private submitBtn: HTMLButtonElement;
+  private searchInput: HTMLInputElement;  // Search input reference
+  private editResidentId: string | null = null;
+
+  constructor(private service: service) {
+    // ... other elements ...
+    this.searchInput = document.getElementById(
+      "searchResident",
+    ) as HTMLInputElement;
+    this.init();
+  }
+}
+```
+
+## Search characteristics
+
+| Feature | Behavior |
+|---------|----------|
+| **Search field** | Name only |
+| **Matching** | Partial, case-insensitive |
+| **Update speed** | Real-time (on input) |
+| **Empty results** | "No residents found" message |
+| **Reset triggers** | Add, update, or delete operations |
+
+## User experience
+
+The search implementation provides several UX benefits:
+
+<Steps>
+  <Step title="Instant feedback">
+    The `input` event provides immediate results as you type, eliminating the need for a search button.
+  </Step>
+
+  <Step title="Forgiving search">
+    Case-insensitive and partial matching makes it easy to find residents without knowing the exact spelling or capitalization.
+  </Step>
+
+  <Step title="Clear empty state">
+    When no results are found, a centered message clearly indicates the search yielded no matches.
+  </Step>
+
+  <Step title="Automatic reset">
+    After performing CRUD operations, the search clears automatically to show the full updated list.
+  </Step>
+</Steps>
+
+<Warning>
+  The current implementation only searches by resident name. Other fields like phone number, room number, age, or check-in date are not searchable.
+</Warning>
+
+## Potential enhancements
+
+While the current search is effective, here are some possible improvements:
+
+- **Multi-field search**: Search across name, phone, room number
+- **Advanced filters**: Filter by date range, room number, age
+- **Search highlighting**: Highlight matching text in results
+- **Debouncing**: Add a small delay to reduce re-renders during fast typing
+- **Search history**: Remember recent searches
+
+The current implementation provides a solid foundation for these enhancements.
