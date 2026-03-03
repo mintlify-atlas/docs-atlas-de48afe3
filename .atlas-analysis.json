@@ -1,0 +1,72 @@
+{
+  "projectType": "frontend",
+  "projectName": "Hostel Management System",
+  "projectDescription": "A TypeScript-based web application for managing hostel residents, room assignments, and occupancy tracking.",
+  "theme": "palm",
+  "primaryColor": "#3b82f6",
+  "lightColor": "#60a5fa",
+  "darkColor": "#1e40af",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "introduction",
+          "quickstart",
+          "installation"
+        ]
+      },
+      {
+        "group": "Core Concepts",
+        "pages": [
+          "concepts/architecture",
+          "concepts/data-models",
+          "concepts/local-storage"
+        ]
+      },
+      {
+        "group": "Features",
+        "pages": [
+          "features/resident-management",
+          "features/room-management",
+          "features/search-and-filter"
+        ]
+      },
+      {
+        "group": "API Reference",
+        "pages": [
+          "api/hostel-service",
+          "api/ui-class",
+          "api/interfaces"
+        ]
+      },
+      {
+        "group": "Development",
+        "pages": [
+          "development/setup",
+          "development/building",
+          "development/customization"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Add, update, and delete hostel residents",
+    "Track room occupancy status in real-time",
+    "Search residents by name",
+    "Automatic room availability management",
+    "Persistent data storage using localStorage",
+    "Real-time statistics dashboard"
+  ],
+  "publicApiSurface": [
+    "hostelService.addResident(name, age, phone, roomNumber, checkInDate)",
+    "hostelService.removeResident(residentId)",
+    "hostelService.updateResident(residentId, updatedData)",
+    "hostelService.getVacantRooms()",
+    "hostelService.getOccupiedRooms()",
+    "hostelService.getRoomStats()",
+    "UI(service)",
+    "Resident interface",
+    "Rooms interface"
+  ]
+}
